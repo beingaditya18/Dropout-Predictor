@@ -169,9 +169,7 @@ Headers: Authorization: Bearer <token>
 ```
 POST /api/upload
 Headers: Authorization: Bearer <token>
-```
 
----
 
 ## 📈 Prediction Output Includes
 
@@ -189,13 +187,8 @@ Headers: Authorization: Bearer <token>
 * Automatically seeded on first run
 * Replaceable with real institutional data
 
----
 
 ## ⚠️ Disclaimer
 
 This system is **decision-support software**, not a replacement for human judgement.
 Predictions should be used responsibly alongside counsellor expertise.
-
-
-
-Just tell me 👍
