@@ -12,8 +12,8 @@ MODEL_PATH = os.path.join(BASE_DIR, 'models', 'dropout_rf.pkl')
 app = Flask(__name__, template_folder='templates')
 
 # 🔑 Gemini API Key
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCmVtJpnNFP7CdN2_g8tzZ8L_deqX4iUyg")
-if GEMINI_API_KEY != "AIzaSyCmVtJpnNFP7CdN2_g8tzZ8L_deqX4iUyg":
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY"Place key here")
+if GEMINI_API_KEY != "Place key here":
     genai.configure(api_key=GEMINI_API_KEY)
 
 # Load model & meta
@@ -186,7 +186,7 @@ def api_predict(student_id):
 
     # AI Insights using Gemini
     ai_insight = ""
-    if GEMINI_API_KEY != "AIzaSyCmVtJpnNFP7CdN2_g8tzZ8L_deqX4iUyg":
+    if GEMINI_API_KEY != "key here":
         prompt = f"""
         You are an education counsellor AI. Analyze the following student's data and risk factors.
         Student: {s}
