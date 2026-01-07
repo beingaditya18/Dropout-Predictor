@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scholar Dropout Prediction System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load Lucide icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .dashboard-gradient { background: linear-gradient(90deg, #4c51bf, #6b46c1); }
+        .card-shadow { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .table-header { background-color: #4c51bf; }
+        /* Chatbot styles */
+        #chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .chat-window {
+            width: 350px;
+            height: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+        }
+        .chat-header {
+            background-color: #4c51bf;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-body {
+            height: 300px;
+            padding: 1rem;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+        .chat-footer {
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .message-ai { background-color: #f0f4ff; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; }
+        .message-user { background-color: #d1fae5; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; text-align: right; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navbar & Header -->
+    <nav class="dashboard-gradient p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold text-white flex items-center">
+                <i data-lucide="graduation-cap" class="mr-3 w-6 h-6"></i>
+                Scholar Risk Prediction
+            </h1>
+            <div class="flex items-center space-x-4">
+                <button id="uploadDataBtn" class="bg-white text-indigo-600 font-semibold py-1.5 px-3 rounded-lg text-sm hover:bg-gray-100 transition duration-200 flex items-center">
+                    <i data-lucide="upload" class="w-4 h-4 mr-1.5"></i> Upload Data
+                </button>
+                <button id="loginBtn" class="text-white font-semibold py-1.5 px-3 rounded-lg text-sm border border-white hover:bg-white hover:text-indigo-600 transition duration-200 flex items-center">
+                    <i data-lucide="log-in" class="w-4 h-4 mr-1.5" id="loginIcon"></i> <span id="loginText">Login / Logout</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Risk Assessment Dashboard</h2>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card bg-indigo-600 p-6 rounded-xl text-white card-shadow">
+                <p class="text-sm opacity-80">Total Students</p>
+                <h3 class="text-3xl font-extrabold mt-1" id="totalStudents">0</h3>
+            </div>
+            <div class="stat-card bg-red-500 p-6 rounded-xl text-white card-shadow">
+                <p class="text-sm opacity-80">High Dropout Risk</p>
+                <h3 class="text-3xl font-extrabold mt-1" id="dropoutRisk">0%</h3>
+            </div>
+            <div class="stat-card bg-green-500 p-6 rounded-xl text-white card-shadow">
+                <p class="text-sm opacity-80">Avg Attendance</p>
+                <h3 class="text-3xl font-extrabold mt-1" id="avgAttendance">0%</h3>
+            </div>
+            <div class="stat-card bg-yellow-500 p-6 rounded-xl text-white card-shadow">
+                <p class="text-sm opacity-80">Avg Academic Result</p>
+                <h3 class="text-3xl font-extrabold mt-1" id="avgResult">0%</h3>
+            </div>
+        </div>
+
+        <!-- Charts and Table Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Charts Column -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Risk Distribution Chart (Donut) -->
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                        <i data-lucide="pie-chart" class="w-5 h-5 mr-2 text-indigo-500"></i> Risk Distribution
+                    </h3>
+                    <div class="h-80"><canvas id="riskDistributionChart"></canvas></div>
+                </div>
+
+                <!-- Class Performance Chart (Bar) -->
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-indigo-500"></i> Class Performance & Risk Comparison
+                    </h3>
+                    <div class="h-96"><canvas id="classPerformanceChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Table Column -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl card-shadow">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <i data-lucide="users" class="w-5 h-5 mr-2 text-indigo-500"></i> Student Risk Overview
+                </h3>
+                <input type="text" id="searchBox" class="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:ring-indigo-500" placeholder="🔍 Search by name...">
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="table-header text-white text-sm uppercase tracking-wider">
+                            <tr>
+                                <th class="px-3 py-3 text-left font-medium">Name</th>
+                                <th class="px-3 py-3 text-left font-medium">Class</th>
+                                <th class="px-3 py-3 text-left font-medium">Risk</th>
+                                <th class="px-3 py-3 text-center font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Student data rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scatter Plot (Full Width) -->
+        <div class="bg-white p-6 rounded-xl card-shadow mt-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <i data-lucide="scatter-chart" class="w-5 h-5 mr-2 text-indigo-500"></i> Attendance vs. Academic Result (Risk Highlight)
+            </h3>
+            <div class="h-96"><canvas id="riskScatterChart"></canvas></div>
+        </div>
+
+    </main>
+
+    <!-- AI Chatbot UI -->
+    <div id="chatbot-container">
+        <button id="chatbot-toggle" class="dashboard-gradient text-white p-4 rounded-full shadow-2xl hover:opacity-90 transition duration-300 flex items-center justify-center w-16 h-16">
+            <i data-lucide="bot" class="w-8 h-8"></i>
+        </button>
+        <div id="chat-window" class="chat-window">
+            <div class="chat-header">
+                <span class="font-bold">AI Dashboard Assistant</span>
+                <button onclick="document.getElementById('chat-window').style.display='none';">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="chat-body" class="chat-body">
+                <div class="message-ai">Hello! I can analyze the full dashboard data. Ask me for trends (e.g., "Which class is most at risk?").</div>
+            </div>
+            <div class="chat-footer">
+                <div class="flex">
+                    <input type="text" id="chat-input" class="flex-grow p-2 border border-gray-300 rounded-l-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ask a question about the dashboard...">
+                    <button id="chat-send" class="bg-indigo-500 text-white p-2 rounded-r-lg hover:bg-indigo-600 transition duration-150">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <i data-lucide="lock" class="w-5 h-5 mr-2 text-indigo-600"></i> Admin Login
+            </h3>
+            <p class="text-sm text-gray-500 mb-4">Use 'counsellor' / 'password123' to login and save notes.</p>
+            <input type="text" id="usernameInput" class="w-full p-3 border border-gray-300 rounded-lg mb-3 focus:ring-indigo-500" placeholder="Username">
+            <input type="password" id="passwordInput" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:ring-indigo-500" placeholder="Password">
+            <button id="submitLoginBtn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200">Log In</button>
+            <button id="cancelLoginBtn" class="w-full mt-2 text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition duration-200">Cancel</button>
+            <p id="loginMessage" class="mt-3 text-sm text-center text-red-500 hidden"></p>
+        </div>
+    </div>
+
+
+    <script>
+        let studentData = [];
+        let riskDistributionChart, classPerformanceChart, riskScatterChart;
+        
+        // Global Constants for AI
+        const API_KEY = ""; // Placeholder for your actual API Key
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        const API_SYSTEM_INSTRUCTION = "You are the AI Dashboard Assistant. Your goal is to provide concise, direct, and actionable insights based on the provided dashboard data. Focus on identifying trends, outliers, and suggesting high-level school-wide interventions. Keep responses professional and brief.";
+
+        // --- Utility Functions ---
+
+        function calculateRisk(probability) {
+            if (probability >= 0.6) return { status: 'High Risk', color: '#dc2626', tailwind: 'bg-red-500' };
+            if (probability >= 0.3) return { status: 'Medium Risk', color: '#f59e0b', tailwind: 'bg-yellow-500' };
+            return { status: 'Low Risk', color: '#10b981', tailwind: 'bg-green-500' };
+        }
+
+        function checkAuthStatus() {
+            const token = localStorage.getItem('authToken');
+            const username = localStorage.getItem('username');
+            const loginTextEl = document.getElementById('loginText');
+            const loginIconEl = document.getElementById('loginIcon');
+            const loginBtnEl = document.getElementById('loginBtn');
+
+            if (token && username) {
+                loginTextEl.innerText = `Logout (${username})`;
+                loginBtnEl.classList.remove('border-white', 'hover:bg-white', 'hover:text-indigo-600');
+                loginBtnEl.classList.add('bg-red-500', 'border-red-500', 'hover:bg-red-600');
+                if (loginIconEl) loginIconEl.setAttribute('data-lucide', 'log-out');
+            } else {
+                loginTextEl.innerText = 'Login / Logout';
+                loginBtnEl.classList.add('border-white', 'hover:bg-white', 'hover:text-indigo-600');
+                loginBtnEl.classList.remove('bg-red-500', 'border-red-500', 'hover:bg-red-600');
+                if (loginIconEl) loginIconEl.setAttribute('data-lucide', 'log-in');
+            }
+            lucide.createIcons();
+        }
+
+        // --- Data Fetching and Rendering ---
+
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students');
+                if (!res.ok) throw new Error("Failed to fetch student data.");
+                studentData = await res.json();
+                
+                // --- 1. Calculate and Render Stats ---
+                const totalStudents = studentData.length;
+                let highRiskCount = 0;
+                let totalAttendance = 0;
+                let totalResult = 0;
+                
+                studentData.forEach(s => {
+                    const risk = calculateRisk(s.risk_score);
+                    if (risk.status === 'High Risk') highRiskCount++;
+                    totalAttendance += s.attendance;
+                    totalResult += s.result_pct;
+                });
+
+                document.getElementById("totalStudents").innerText = totalStudents;
+                document.getElementById("dropoutRisk").innerText = totalStudents ? ((highRiskCount / totalStudents) * 100).toFixed(1) + "%" : "0%";
+                document.getElementById("avgAttendance").innerText = totalStudents ? (totalAttendance / totalStudents).toFixed(1) + "%" : "0%";
+                document.getElementById("avgResult").innerText = totalStudents ? (totalResult / totalStudents).toFixed(1) + "%" : "0%";
+
+                // --- 2. Render Table and Charts ---
+                renderStudentTable(studentData);
+                renderCharts(studentData);
+
+            } catch (error) {
+                console.error("Error loading student data:", error);
+                document.getElementById("studentTable").innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Failed to load data. Ensure the backend is running.</td></tr>';
+            }
+        }
+
+        function renderStudentTable(data) {
+            const table = document.getElementById("studentTable");
+            table.innerHTML = "";
+            
+            data.forEach(s => {
+                const risk = calculateRisk(s.risk_score);
+                const encodedName = encodeURIComponent(s.name); // URL encode the name
+                
+                const row = `
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">Class ${s.class}</td>
+                        <td class="px-3 py-3 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${risk.tailwind} text-white">
+                                ${risk.status}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
+                            <a href="/prediction?student_name=${encodedName}" class="text-indigo-600 hover:text-indigo-900 font-semibold">View Details</a>
+                        </td>
+                    </tr>`;
+                table.innerHTML += row;
+            });
+
+            // Re-apply search listener on new data
+            document.getElementById("searchBox").removeEventListener("input", searchTable);
+            document.getElementById("searchBox").addEventListener("input", searchTable);
+        }
+
+        function searchTable() {
+            const term = document.getElementById("searchBox").value.toLowerCase();
+            const tableBody = document.getElementById("studentTable");
+            Array.from(tableBody.children).forEach(tr => {
+                const studentName = tr.children[0].innerText.toLowerCase();
+                tr.style.display = studentName.includes(term) ? "" : "none";
+            });
+        }
+
+        function renderCharts(data) {
+            const highRisk = data.filter(s => s.risk_score >= 0.6).length;
+            const mediumRisk = data.filter(s => s.risk_score >= 0.3 && s.risk_score < 0.6).length;
+            const lowRisk = data.filter(s => s.risk_score < 0.3).length;
+            
+            // Group data by class
+            const classes = {};
+            data.forEach(s => {
+                if (!classes[s.class]) {
+                    classes[s.class] = { total: 0, attendanceSum: 0, resultSum: 0, riskSum: 0 };
+                }
+                classes[s.class].total++;
+                classes[s.class].attendanceSum += s.attendance;
+                classes[s.class].resultSum += s.result_pct;
+                classes[s.class].riskSum += s.risk_score;
+            });
+            
+            const classLabels = Object.keys(classes).sort((a, b) => a - b);
+            const classAttendance = classLabels.map(c => (classes[c].attendanceSum / classes[c].total).toFixed(1));
+            const classResults = classLabels.map(c => (classes[c].resultSum / classes[c].total).toFixed(1));
+            const classRisk = classLabels.map(c => (classes[c].riskSum / classes[c].total * 100).toFixed(1));
+
+
+            // --- Chart 1: Risk Distribution (Donut) ---
+            if (riskDistributionChart) riskDistributionChart.destroy();
+            riskDistributionChart = new Chart(document.getElementById('riskDistributionChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                    datasets: [{
+                        data: [lowRisk, mediumRisk, highRisk],
+                        backgroundColor: ['#10b981', '#f59e0b', '#dc2626'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // --- Chart 2: Class Performance (Bar) ---
+            if (classPerformanceChart) classPerformanceChart.destroy();
+            classPerformanceChart = new Chart(document.getElementById('classPerformanceChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: classLabels.map(c => `Class ${c}`),
+                    datasets: [
+                        {
+                            label: 'Avg Attendance (%)',
+                            data: classAttendance,
+                            backgroundColor: '#4c51bf',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Avg Result (%)',
+                            data: classResults,
+                            backgroundColor: '#3b82f6',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Avg Dropout Risk (%)',
+                            data: classRisk,
+                            backgroundColor: '#ef4444',
+                            type: 'line',
+                            borderColor: '#ef4444',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Percentage (%)' },
+                            min: 0, max: 100
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Risk Score (%)' },
+                            grid: { drawOnChartArea: false },
+                            min: 0, max: 100
+                        }
+                    },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+            
+            // --- Chart 3: Risk Scatter Chart ---
+            const highRiskPoints = data.filter(s => s.risk_score >= 0.6);
+            const mediumRiskPoints = data.filter(s => s.risk_score >= 0.3 && s.risk_score < 0.6);
+            const lowRiskPoints = data.filter(s => s.risk_score < 0.3);
+
+            if (riskScatterChart) riskScatterChart.destroy();
+            riskScatterChart = new Chart(document.getElementById('riskScatterChart').getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'High Risk',
+                        data: highRiskPoints.map(s => ({ x: s.attendance, y: s.result_pct, r: 4 })),
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red
+                        borderColor: '#dc2626',
+                    }, {
+                        label: 'Medium Risk',
+                        data: mediumRiskPoints.map(s => ({ x: s.attendance, y: s.result_pct, r: 4 })),
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)', // Yellow/Orange
+                        borderColor: '#f59e0b',
+                    }, {
+                        label: 'Low Risk',
+                        data: lowRiskPoints.map(s => ({ x: s.attendance, y: s.result_pct, r: 4 })),
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)', // Green
+                        borderColor: '#10b981',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: 'Attendance Percentage (%)', font: { size: 14 } },
+                            min: 0, max: 100
+                        },
+                        y: {
+                            type: 'linear',
+                            title: { display: true, text: 'Result Percentage (%)', font: { size: 14 } },
+                            min: 0, max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const datasetIndex = context.datasetIndex;
+                                    let student;
+                                    
+                                    if(datasetIndex === 0) student = highRiskPoints[index];
+                                    else if(datasetIndex === 1) student = mediumRiskPoints[index];
+                                    else student = lowRiskPoints[index];
+                                    
+                                    return [
+                                        `Name: ${student.name}`,
+                                        `Risk: ${(student.risk_score * 100).toFixed(1)}%`,
+                                        `Attendance: ${student.attendance}%`,
+                                        `Result: ${student.result_pct}%`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Auth and Login/Logout ---
+
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Logout action
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('username');
+                checkAuthStatus();
+                // Inform user (using a non-alert message)
+                alert('Successfully logged out.'); // Using alert here for simplicity in a non-modal context
+            } else {
+                // Show login modal
+                document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('loginModal').classList.add('flex');
+            }
+        });
+
+        document.getElementById('cancelLoginBtn').addEventListener('click', () => {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('loginModal').classList.remove('flex');
+        });
+
+        document.getElementById('submitLoginBtn').addEventListener('click', async () => {
+            const username = document.getElementById('usernameInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const messageEl = document.getElementById('loginMessage');
+
+            messageEl.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('username', username);
+                    document.getElementById('loginModal').classList.add('hidden');
+                    document.getElementById('loginModal').classList.remove('flex');
+                    checkAuthStatus();
+                } else {
+                    const error = await response.json();
+                    messageEl.innerText = error.error || 'Login failed. Check credentials.';
+                    messageEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                messageEl.innerText = 'Network error during login.';
+                messageEl.classList.remove('hidden');
+            }
+        });
+
+
+        // --- AI Chatbot Logic ---
+        
+        document.getElementById('chatbot-toggle').addEventListener('click', () => {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.style.display = chatWindow.style.display === 'block' ? 'none' : 'block';
+        });
+
+        document.getElementById('chat-send').addEventListener('click', handleChatSubmit);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleChatSubmit();
+            }
+        });
+
+        async function handleChatSubmit() {
+            const input = document.getElementById('chat-input');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            addMessageToChat(prompt, 'user');
+            input.value = '';
+            
+            if (studentData.length === 0) {
+                addMessageToChat("Error: No student data available to analyze.", 'ai');
+                return;
+            }
+
+            // Show loading state
+            const loadingMsg = addMessageToChat('AI Assistant is analyzing dashboard data...', 'ai', true);
+
+            try {
+                const aiResponse = await callAIForInsight(prompt);
+                loadingMsg.innerText = aiResponse.text;
+            } catch (error) {
+                console.error("AI Chatbot Error:", error);
+                loadingMsg.innerText = "Error: Could not connect to the AI service or generate an insight.";
+            }
+        }
+
+        function addMessageToChat(text, sender, isLoading = false) {
+            const body = document.getElementById('chat-body');
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add(sender === 'user' ? 'message-user' : 'message-ai');
+            
+            if (isLoading) {
+                 msgDiv.innerHTML = `<i data-lucide="loader-circle" class="w-4 h-4 mr-2 animate-spin"></i> ${text}`;
+            } else {
+                 msgDiv.innerText = text;
+            }
+           
+            body.appendChild(msgDiv);
+            body.scrollTop = body.scrollHeight; // Auto-scroll
+            lucide.createIcons();
+            return msgDiv; // Return the element for loading update
+        }
+
+        async function callAIForInsight(userQuery) {
+            // Prepare a context summary of the entire student data for the dashboard AI
+            const contextData = studentData.map(s => ({
+                name: s.name,
+                class: s.class,
+                risk_score: s.risk_score,
+                attendance: s.attendance,
+                result_pct: s.result_pct
+            }));
+            
+            const prompt = `Dashboard data summary (use this context to answer the user query): ${JSON.stringify(contextData)}. User Query: ${userQuery}`;
+
+            const chatHistory = [
+                { role: "user", parts: [{ text: prompt }] }
+            ];
+
+            const payload = {
+                contents: chatHistory,
+                // Using Google Search grounding here would only be for external info, we want local data analysis, so keep it commented
+                systemInstruction: {
+                    parts: [{ text: API_SYSTEM_INSTRUCTION }]
+                },
+            };
+
+            let response;
+            const maxRetries = 3;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        break; 
+                    } else if (response.status === 429 && attempt < maxRetries - 1) {
+                        const delay = Math.pow(2, attempt) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error(`API returned status ${response.status}`);
+                    }
+                } catch (error) {
+                    if (attempt === maxRetries - 1) throw error; 
+                }
+            }
+            
+            if (!response || !response.ok) {
+                throw new Error("Failed to fetch from Gemini API after multiple retries.");
+            }
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                return { text: candidate.content.parts[0].text };
+            } else {
+                return { text: "I couldn't generate an insight from the current dashboard data.", sources: [] };
+            }
+        }
+
+        // --- Initialization ---
+
+        window.onload = () => {
+            checkAuthStatus();
+            loadStudents();
+            lucide.createIcons();
+        };
+    </script>
+
+</body>
+</html>

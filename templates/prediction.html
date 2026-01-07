@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Prediction Details</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load Lucide icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .dashboard-gradient { background: linear-gradient(135deg, #4c51bf, #6b46c1); }
+        .risk-high { color: #dc2626; border-color: #dc2626; }
+        .risk-low { color: #10b981; border-color: #10b981; }
+        .risk-medium { color: #f59e0b; border-color: #f59e0b; }
+        .chart-container { height: 350px; }
+        /* Style for the fixed chatbot */
+        #chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .chat-window {
+            width: 350px;
+            height: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+        }
+        .chat-header {
+            background-color: #4c51bf;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-body {
+            height: 300px;
+            padding: 1rem;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+        .chat-footer {
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .message-ai { background-color: #f0f4ff; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; }
+        .message-user { background-color: #d1fae5; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; text-align: right; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="dashboard-gradient p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex justify-start items-center">
+            <a href="/" class="text-lg font-semibold text-white flex items-center hover:opacity-80 transition duration-200">
+                <i data-lucide="arrow-left" class="mr-2 w-5 h-5"></i>
+                Back to Dashboard
+            </a>
+            <h1 class="text-2xl font-extrabold text-white ml-8">
+                <span id="studentNameHeader">Student Details</span>
+            </h1>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center p-12 text-gray-500">
+            <i data-lucide="loader-circle" class="w-10 h-10 mx-auto animate-spin"></i>
+            <p class="mt-4 text-xl">Loading student data and running prediction...</p>
+        </div>
+
+        <!-- Detail Layout -->
+        <div id="content" class="hidden">
+            
+            <!-- Student Header and Risk Score -->
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row justify-between items-start md:items-center border-t-8 border-red-500" id="riskBanner">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-1 flex items-center">
+                        <i data-lucide="user-check" class="mr-3 w-7 h-7 text-indigo-500"></i>
+                        <span id="studentFullName"></span>
+                    </h2>
+                    <p class="text-lg text-gray-600">Class: <span id="studentClass" class="font-medium"></span> | Village: <span id="studentVillage" class="font-medium"></span></p>
+                </div>
+                <div class="mt-4 md:mt-0 text-right">
+                    <p class="text-sm font-semibold text-gray-500 uppercase">Predicted Dropout Risk</p>
+                    <p class="text-5xl font-extrabold" id="riskScoreDisplay">0.0%</p>
+                    <p class="text-xl font-bold mt-1" id="riskStatus">STATUS</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- COLUMN 1: AI Insight and Risk Factors -->
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- 1. AI Insight & Actionable Measures -->
+                    <div class="bg-indigo-50 p-6 rounded-xl shadow-md border-2 border-indigo-200">
+                        <h3 class="text-xl font-bold text-indigo-700 mb-3 flex items-center">
+                            <i data-lucide="gem" class="mr-2 w-5 h-5"></i> AI Counselor Insights
+                        </h3>
+                        <div id="aiInsightContent" class="text-gray-800 whitespace-pre-wrap">
+                            <i data-lucide="loader-circle" class="w-4 h-4 mr-2 animate-spin text-indigo-500"></i> Generating expert advice...
+                        </div>
+                    </div>
+
+                    <!-- 2. Risk Factors & Model Accuracy -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 flex items-center">
+                            <i data-lucide="alert-triangle" class="mr-2 text-red-500 w-5 h-5"></i> Key Risk Contributors
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-500">Model Accuracy:</p>
+                                <p class="text-2xl font-bold text-green-600" id="modelAccuracy">0%</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Identified Reasons:</p>
+                                <ul id="riskReasonsList" class="list-disc list-inside text-gray-800 font-medium">
+                                    <li>Loading...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. Feature Impact Chart -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 flex items-center">
+                            <i data-lucide="bar-chart-2" class="mr-2 text-blue-500 w-5 h-5"></i> Feature Contribution to Risk
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="featureImpactChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- COLUMN 2: Raw Data and Notes -->
+                <div class="lg:col-span-1 space-y-8">
+
+                    <!-- 4. Student Raw Data -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 flex items-center">
+                            <i data-lucide="database" class="mr-2 text-gray-500 w-5 h-5"></i> Key Data Points
+                        </h3 >
+                        <div id="studentDataList" class="space-y-2">
+                            <!-- Raw data points loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- 5. Staff Notes -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 flex items-center">
+                            <i data-lucide="book-open" class="mr-2 text-purple-500 w-5 h-5"></i> Counsellor Notes
+                        </h3>
+                        <div id="notesList" class="space-y-4 max-h-64 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                            <!-- Notes loaded here -->
+                        </div>
+                        <div class="mt-4">
+                            <textarea id="newNoteText" class="w-full p-2 border rounded-lg focus:ring-purple-500" rows="3" placeholder="Add a new intervention note (requires login)"></textarea>
+                            <input type="text" id="noteAuthor" class="w-full p-2 mt-2 border rounded-lg focus:ring-purple-500" placeholder="Your Name / Role (e.g., Jane D. Counsellor)">
+                            <button id="saveNoteButton" class="w-full mt-2 bg-purple-600 text-white p-2 rounded-lg font-semibold hover:bg-purple-700 transition duration-200">
+                                Save Note
+                            </button>
+                            <p id="noteMessage" class="mt-2 text-sm text-center"></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- AI Chatbot UI -->
+    <div id="chatbot-container">
+        <button id="chatbot-toggle" class="dashboard-gradient text-white p-4 rounded-full shadow-2xl hover:bg-indigo-700 transition duration-300 flex items-center justify-center w-16 h-16">
+            <i data-lucide="bot" class="w-8 h-8"></i>
+        </button>
+        <div id="chat-window" class="chat-window">
+            <div class="chat-header">
+                <span class="font-bold">AI Insight Assistant</span>
+                <button onclick="document.getElementById('chat-window').style.display='none';">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="chat-body" class="chat-body">
+                <div class="message-ai">Hello! I can provide actionable advice based on <span id="chatStudentName">this student's</span> data. Ask me for suggestions!</div>
+            </div>
+            <div class="chat-footer">
+                <div class="flex">
+                    <input type="text" id="chat-input" class="flex-grow p-2 border border-gray-300 rounded-l-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ask a question about this student...">
+                    <button id="chat-send" class="bg-indigo-500 text-white p-2 rounded-r-lg hover:bg-indigo-600 transition duration-150">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let impactChartInstance;
+        let studentName; // Key identifier
+        let currentStudentData = null; 
+        let currentPredictionData = null; 
+
+        // Global Constants for AI
+        const API_KEY = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        const API_SYSTEM_INSTRUCTION = "You are the AI Counselor Assistant. Your goal is to provide concise, direct, and actionable intervention advice and insights specifically for the student whose data is provided. Refer directly to the student's score and factors in your answer. Keep responses professional and brief.";
+
+        // Retrieve auth token and username from localStorage
+        let authHeader = localStorage.getItem('authToken') ? `Bearer ${localStorage.getItem('authToken')}` : '';
+        let currentUserName = localStorage.getItem('username') || 'Unknown User';
+
+        // --- Core Fetch Functions ---
+
+        async function fetchStudentData(name) {
+            // Fetch student's general data and notes
+            const studentResp = await fetch(`/api/students/${name}`); // Use name in API path
+            const studentData = await studentResp.json();
+            
+            // Fetch prediction details, reasons, and AI insights
+            const predictionResp = await fetch(`/api/predict/${name}`); // Use name in API path
+            const predictionData = await predictionResp.json();
+
+            if (studentResp.status !== 200 || predictionResp.status !== 200) {
+                document.getElementById('loading').innerHTML = `<p class="mt-4 text-xl text-red-600">Error: Student name "${decodeURIComponent(name)}" not found or prediction failed. Check console for details.</p>`;
+                return null;
+            }
+            
+            currentStudentData = studentData.student;
+            currentPredictionData = predictionData;
+
+            return { 
+                student: currentStudentData, 
+                notes: studentData.notes,
+                prediction: currentPredictionData
+            };
+        }
+        
+        async function fetchAndSetDefaultStudent() {
+            // Fallback: If no name is in the URL, try to load the first student
+            try {
+                const studentsResp = await fetch('/api/students');
+                
+                // IMPORTANT: Check for successful response status before processing JSON
+                if (!studentsResp.ok) {
+                    throw new Error(`API response status was ${studentsResp.status}.`);
+                }
+
+                const students = await studentsResp.json();
+                
+                if (students.length > 0) {
+                    const firstName = students[0].name;
+                    // Note: Use encodeURIComponent here to ensure the name works in the URL for the next step
+                    return encodeURIComponent(firstName); 
+                } else {
+                    document.getElementById('loading').innerHTML = '<p class="mt-4 text-xl text-gray-600">No students found in the database. Please upload data first.</p>';
+                    return null;
+                }
+            } catch (error) {
+                // Log the error for debugging
+                console.error("Error fetching student list from API:", error);
+                
+                // Update the user-facing message with more detail
+                document.getElementById('loading').innerHTML = `<p class="mt-4 text-xl text-red-600">Error: Could not fetch student list from API. Check if the Flask server is running correctly. (${error.message})</p>`;
+                return null;
+            }
+        }
+
+        // --- Rendering Functions ---
+
+        function renderStudentHeader(student, prediction) {
+            const riskScore = (prediction.dropout_probability * 100).toFixed(1);
+            const riskStatus = prediction.dropout_probability >= 0.6 ? 'High Risk' : 
+                               prediction.dropout_probability >= 0.3 ? 'Medium Risk' : 'Low Risk';
+            
+            let color = 'border-red-500';
+            let textColor = 'text-red-500';
+
+            if (prediction.dropout_probability < 0.3) {
+                color = 'border-green-500';
+                textColor = 'text-green-500';
+            } else if (prediction.dropout_probability < 0.6) {
+                color = 'border-yellow-500';
+                textColor = 'text-yellow-500';
+            }
+            
+            const riskBanner = document.getElementById('riskBanner');
+            // Remove previous border color and add the new one
+            riskBanner.className = riskBanner.className.replace(/border-(red|green|yellow)-\d{3}/g, '').trim() + ` border-t-8 ${color}`;
+
+            document.getElementById('studentNameHeader').innerText = student.name;
+            document.getElementById('studentFullName').innerText = student.name;
+            document.getElementById('chatStudentName').innerText = student.name; // Update chat greeting
+            document.getElementById('studentClass').innerText = student.class;
+            document.getElementById('studentVillage').innerText = student.village || 'N/A';
+            document.getElementById('riskScoreDisplay').innerText = `${riskScore}%`;
+            document.getElementById('riskScoreDisplay').className = `${textColor} text-5xl font-extrabold`;
+            document.getElementById('riskStatus').innerText = riskStatus.toUpperCase();
+            document.getElementById('riskStatus').className = `${textColor} text-xl font-bold mt-1`;
+        }
+
+        function renderRawData(student) {
+            // Filter and format key data points for display
+            // Remove 'name' from this list since it's the identifier
+            const studentKeys = Object.keys(student).filter(key => 
+                key !== 'name' && 
+                key !== 'risk_score' && 
+                key !== 'dropout'
+            );
+
+            const readableNames = {
+                'class': 'Class',
+                'village': 'Village',
+                'attendance': 'Attendance',
+                'result_pct': 'Result Percentage',
+                'assignments_submitted': 'Assignments Submitted',
+                'engagement_score': 'Engagement Score',
+                'family_income': 'Family Income (USD)',
+                'distance_km': 'Distance to School (km)',
+                'fee_delay': 'Fee Delay History',
+            };
+
+            const formatValue = (key, value) => {
+                if (key === 'result_pct' || key === 'attendance') return `${value}%`;
+                if (key === 'family_income') return `$${value ? value.toLocaleString() : 'N/A'}`;
+                if (key === 'distance_km') return `${value} km`;
+                if (key === 'fee_delay') return value ? 'Yes' : 'No';
+                return value;
+            };
+
+            const list = document.getElementById('studentDataList');
+            list.innerHTML = studentKeys.map(key => `
+                <div class="flex justify-between border-b pb-1">
+                    <span class="text-sm text-gray-600">${readableNames[key] || key}:</span>
+                    <span class="text-sm font-semibold text-gray-800">${formatValue(key, student[key])}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderRiskFactors(prediction) {
+            // Display model accuracy and identified reasons
+            document.getElementById('modelAccuracy').innerText = `${(prediction.model_accuracy * 100).toFixed(2)}%`;
+            
+            const reasonsList = document.getElementById('riskReasonsList');
+            reasonsList.innerHTML = prediction.reasons.map(reason => `<li>${reason}</li>`).join('');
+
+            // Display AI Insight (which includes actionable measures)
+            document.getElementById('aiInsightContent').innerHTML = prediction.ai_insight.replace(/\n/g, '<br>');
+        }
+
+        function renderFeatureImpactChart(impacts) {
+             const chartData = impacts
+                .filter(i => i.feature !== 'name') // Filter out the name feature
+                .map(i => ({
+                    feature: i.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    impact: i.impact
+                }))
+                .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+            
+            const labels = chartData.map(i => i.feature);
+            const data = chartData.map(i => i.impact);
+            const colors = data.map(i => i > 0 ? '#ef4444' : '#10b981'); 
+            
+            if (impactChartInstance) impactChartInstance.destroy();
+
+            impactChartInstance = new Chart(document.getElementById('featureImpactChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Feature Impact Score (Higher = More Risk)',
+                        data: data,
+                        backgroundColor: colors,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Feature Impact Score (Positive is Risk)', font: { size: 14 } },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderNotes(notes) {
+            const list = document.getElementById('notesList');
+            // Format and display existing notes
+            list.innerHTML = notes.map(note => `
+                <div class="border-b last:border-b-0 pb-2">
+                    <p class="text-sm font-medium text-gray-800">${note.note}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        — ${note.author} on ${new Date(note.created_at).toLocaleDateString()}
+                    </p>
+                </div>
+            `).join('') || '<p class="text-gray-500 text-sm">No intervention notes recorded yet. (Login required to add notes)</p>';
+        }
+
+        // --- Note Saving Logic ---
+
+        document.getElementById('saveNoteButton').addEventListener('click', async () => {
+            const noteText = document.getElementById('newNoteText').value.trim();
+            const noteAuthor = document.getElementById('noteAuthor').value.trim();
+            const messageEl = document.getElementById('noteMessage');
+
+            // Re-check authentication token
+            authHeader = localStorage.getItem('authToken') ? `Bearer ${localStorage.getItem('authToken')}` : '';
+
+            if (!authHeader) {
+                messageEl.className = 'mt-2 text-sm text-center text-red-500';
+                messageEl.innerText = 'Error: You must be logged in to save notes. Please log in on the Dashboard page.';
+                return;
+            }
+            if (!noteText || !noteAuthor) {
+                messageEl.className = 'mt-2 text-sm text-center text-red-500';
+                messageEl.innerText = 'Error: Note text and author name are required.';
+                return;
+            }
+
+            messageEl.className = 'mt-2 text-sm text-center text-indigo-500';
+            messageEl.innerText = 'Saving note...';
+
+            try {
+                const response = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader, 
+                        'X-User': noteAuthor 
+                    },
+                    body: JSON.stringify({ student_name: decodeURIComponent(studentName), note: noteText }) // Use student_name and decode it
+                });
+
+                if (response.ok) {
+                    messageEl.className = 'mt-2 text-sm text-center text-green-500';
+                    messageEl.innerText = 'Note saved successfully! Reloading data...';
+                    document.getElementById('newNoteText').value = '';
+                    await initializePage(); // Reload the whole page data to show new note
+                } else {
+                    const error = await response.json();
+                    messageEl.className = 'mt-2 text-sm text-center text-red-500';
+                    messageEl.innerText = `Save failed: ${error.error || 'Unauthorized or server error. Check token validity.'}`;
+                }
+            } catch (error) {
+                messageEl.className = 'mt-2 text-sm text-center text-red-500';
+                messageEl.innerText = `Network error: ${error.message}`;
+            }
+        });
+
+
+        // --- AI Chatbot Logic ---
+
+        document.getElementById('chatbot-toggle').addEventListener('click', () => {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.style.display = chatWindow.style.display === 'block' ? 'none' : 'block';
+        });
+
+        document.getElementById('chat-send').addEventListener('click', handleChatSubmit);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleChatSubmit();
+            }
+        });
+
+        async function handleChatSubmit() {
+            const input = document.getElementById('chat-input');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            addMessageToChat(prompt, 'user');
+            input.value = '';
+            
+            if (!currentStudentData || !currentPredictionData) {
+                addMessageToChat("Error: Student data is still loading or was not found.", 'ai');
+                return;
+            }
+
+            // Show loading state
+            const loadingMsg = addMessageToChat('AI Assistant is thinking...', 'ai', true);
+
+            try {
+                const aiResponse = await callAIForInsight(prompt);
+                loadingMsg.innerText = aiResponse.text;
+            } catch (error) {
+                console.error("AI Chatbot Error:", error);
+                loadingMsg.innerText = "Error: Could not connect to the AI service or generate an insight.";
+            }
+        }
+
+        function addMessageToChat(text, sender, isLoading = false) {
+            const body = document.getElementById('chat-body');
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add(sender === 'user' ? 'message-user' : 'message-ai');
+            
+            if (isLoading) {
+                 msgDiv.innerHTML = `<i data-lucide="loader-circle" class="w-4 h-4 mr-2 animate-spin"></i> ${text}`;
+            } else {
+                 msgDiv.innerText = text;
+            }
+           
+            body.appendChild(msgDiv);
+            body.scrollTop = body.scrollHeight; // Auto-scroll
+            lucide.createIcons();
+            return msgDiv; // Return the element for loading update
+        }
+
+        // --- Gemini API Call tailored for a single student ---
+
+        async function callAIForInsight(userQuery) {
+            // Create a focused summary of the current student's data and prediction
+            const studentSummary = JSON.stringify({
+                student: currentStudentData,
+                prediction: {
+                    probability: currentPredictionData.dropout_probability,
+                    reasons: currentPredictionData.reasons,
+                    impacts: currentPredictionData.explanation,
+                }
+            });
+
+            const chatHistory = [
+                { role: "user", parts: [{ text: `Analyze the following student's detailed data and prediction summary to answer this specific query: "${userQuery}". Data: ${studentSummary}` }] }
+            ];
+
+            const payload = {
+                contents: chatHistory,
+                systemInstruction: {
+                    parts: [{ text: API_SYSTEM_INSTRUCTION }]
+                },
+            };
+
+            let response;
+            const maxRetries = 3;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        break; 
+                    } else if (response.status === 429 && attempt < maxRetries - 1) {
+                        const delay = Math.pow(2, attempt) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error(`API returned status ${response.status}`);
+                    }
+                } catch (error) {
+                    if (attempt === maxRetries - 1) throw error; 
+                }
+            }
+            
+            if (!response || !response.ok) {
+                throw new Error("Failed to fetch from Gemini API after multiple retries.");
+            }
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                return { text: candidate.content.parts[0].text };
+            } else {
+                return { text: "I couldn't generate a specific insight from the data provided. Please try a different question.", sources: [] };
+            }
+        }
+        
+        // --- Initialization ---
+
+        async function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let nameFromUrl = urlParams.get('student_name'); // Use student_name
+
+            if (!nameFromUrl) {
+                // Fallback: If no name is provided, fetch the first student's name
+                nameFromUrl = await fetchAndSetDefaultStudent();
+                if (!nameFromUrl) return; // If no student exists, exit
+            }
+
+            studentName = nameFromUrl; // Store the student's name globally
+
+            try {
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('content').classList.add('hidden');
+
+                const data = await fetchStudentData(studentName);
+                
+                if (data) {
+                    renderStudentHeader(data.student, data.prediction);
+                    renderRawData(data.student);
+                    renderRiskFactors(data.prediction);
+                    renderFeatureImpactChart(data.prediction.explanation);
+                    renderNotes(data.notes);
+                    
+                    // Set author field if username is available
+                    document.getElementById('noteAuthor').value = currentUserName; 
+                    
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('content').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                document.getElementById('loading').innerHTML = `<p class="mt-4 text-xl text-red-600">Failed to load data: ${error.message}</p>`;
+            }
+            lucide.createIcons();
+        }
+
+        window.onload = initializePage;
+    </script>
+</body>
+</html>

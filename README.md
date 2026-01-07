@@ -1,0 +1,1 @@
+Run the app: python app.py\nDefault counsellor/password: counsellor/password123\nUse POST /api/login to get token. Protected endpoints require Authorization: Bearer <token>\n
