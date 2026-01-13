@@ -202,7 +202,7 @@ def api_predict(student_id):
         except Exception:
             pass   # fallback will be used below
 
-    # ✅ Dynamic Role-Based Fallback if Gemini unavailable or failed
+    #  Dynamic Role-Based Fallback if Gemini unavailable or failed
     if not ai_insight:
         measures = []
 
