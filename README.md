@@ -1,4 +1,4 @@
-#  Student Dropout Risk Prediction System (Flask + ML + Gemini AI)
+#  Student Dropout Risk Prediction System 
 An **AI-powered student dropout risk prediction platform** built using **Flask**, **Machine Learning**, **SQLite**, and **Google Gemini AI**.
 The system helps **teachers, counsellors, and administrators** identify at-risk students early and take preventive actions.
 ##  Features
