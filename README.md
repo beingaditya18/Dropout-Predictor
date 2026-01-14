@@ -4,11 +4,11 @@ The system helps **teachers, counsellors, and administrators** identify at-risk 
 ##  Features
 ###  Machine Learning–Based Prediction
 * Uses a **trained Random Forest model** (`dropout_rf.pkl`)
-* Predicts:
+  Predicts:
 
   * **Dropout probability**
   * **Binary risk status (Yes / No)**
-* Includes **feature-level impact explanations**
+
 
 ###  AI Counselling Insights (Gemini AI)
 
